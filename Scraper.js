@@ -19,7 +19,7 @@ console.log(attackers_URLs);
   // Save results to a JSON file
   fs.writeFileSync("results.json", JSON.stringify(site_data, null, 2));
 
-  console.log("✅ Results saved to results.json");
+  console.log("✅ Results saved to results.json!");
 
 
 }
