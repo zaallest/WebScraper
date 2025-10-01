@@ -14,7 +14,7 @@ const ScrapeSite = async (attackers_URLs) => {
       const $ = cheerio.load(data);
 
       // Get all visible text on the page
-      const pageText = $("body").text().toLowerCase();
+      const pageText = $("body").text().toLowerCase().replace(/\s+/g, " ").trim();
       const result = { at: at.at, url: at.url, text: pageText };
       site_data.push(result);
     } catch (err) {
