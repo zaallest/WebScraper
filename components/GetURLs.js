@@ -6,13 +6,39 @@ const cheerio = require("cheerio");
 const GetURLs = async (attacker) => {
   // Base URL
   const url = ["https://bgp.he.net/AS"];
-  const attackers_URLs = [];
+  let attackers_URLs = [];
   try {
-    for (const at of attacker) {
-      // const result = await scrapeSite(url, itemsToSearch);
-      //allResults.push(result);
+    if (attacker.length > 1) {
+      //Multiple ASNs provided as input
+      for (const at of attacker) {
+        const { data } = await axios.get(url + "" + at);
+        const $ = cheerio.load(data);
 
-      const { data } = await axios.get(url + "" + at);
+        //Get all visible text on the page
+        const pageText = $("body").text().toLowerCase();
+
+        //Get first and last index of the URL
+        const f_index = pageText.indexOf("https://www.");
+        const l_index = pageText.lastIndexOf(".br");
+        const l_index2 = pageText.indexOf("/");
+
+        //check if there is an attacker URL
+        if (f_index > 0 && l_index > 0) {
+          //Get the URL correspond to the code..
+          const URL = pageText.substring(f_index, l_index + 3);
+
+          //Puch url to the list
+          attackers_URLs.push({ at: at, url: URL });
+        } else if (f_index > 0 && l_index2 > 0) {
+          const URL = pageText.substring(f_index, l_index2 + 40).trim();
+
+          //Puch url to the list
+          attackers_URLs.push({ at: at, url: URL });
+        }
+      }
+    } else {
+      //Single ASN provided as input
+      const { data } = await axios.get(url + "" + attacker[0]);
       const $ = cheerio.load(data);
 
       //Get all visible text on the page
@@ -29,12 +55,12 @@ const GetURLs = async (attacker) => {
         const URL = pageText.substring(f_index, l_index + 3);
 
         //Puch url to the list
-        attackers_URLs.push({ at: at, url: URL });
+        attackers_URLs.push({ at: attacker[0], url: URL });
       } else if (f_index > 0 && l_index2 > 0) {
         const URL = pageText.substring(f_index, l_index2 + 40).trim();
 
         //Puch url to the list
-        attackers_URLs.push({ at: at, url: URL });
+        attackers_URLs.push({ at: attacker[0], url: URL });
       }
     }
   } catch (error) {

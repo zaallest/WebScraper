@@ -6,20 +6,27 @@ const cheerio = require("cheerio");
 const ScrapeSite = async (attackers_URLs) => {
   const site_data = [];
   let i = -1;
+
   //Featch each URL site data..
   for (const at of attackers_URLs) {
     i++;
     try {
+      // Fetch the HTML content of the URL
       const { data } = await axios.get(at.url);
       const $ = cheerio.load(data);
 
-      // Get all visible text on the page
-      const pageText = $("body").text().toLowerCase().replace(/\s+/g, " ").trim();
+      // Extract and clean the text content from the page. Convert to lowercase and remove extra whitespace.
+      const pageText = $("body")
+        .text()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+      // Store the result in an object
       const result = { at: at.at, url: at.url, text: pageText };
+      // Push the result to the site_data array
       site_data.push(result);
     } catch (err) {
-      console.error(`Error scraping ${attackers_URLs[i].url}: ${err.message}`);
-      // Optionally, you can push an error object to site_data if you want to keep track of failed URLs
+      // In case of an error (e.g., network issue, invalid URL), log the error and continue
       site_data.push({
         at: attackers_URLs[i].at,
         url: attackers_URLs[i].url,
@@ -28,6 +35,7 @@ const ScrapeSite = async (attackers_URLs) => {
       //return { url, error: err.message };
     }
   }
+  // Return the array of site data
   return site_data;
 };
 

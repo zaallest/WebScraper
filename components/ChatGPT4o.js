@@ -1,43 +1,44 @@
-/*
-Run this model in Javascript
-
-> npm install openai
-*/
+// Import necessary modules
 require("dotenv").config();
 
-const OpenAI  = require("openai");
+const OpenAI = require("openai");
 
-// To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings. 
-// Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+// Make sure to select the "repo" and "read:packages" scopes.
 const token = process.env.CHATGPT4o_API_KEY;
 
+// Function to interact with ChatGPT4o model
 const ChatGPT4oRes = async (data) => {
-
+  // Initialize OpenAI client
   const client = new OpenAI({
     baseURL: "https://models.github.ai/inference",
-    apiKey: token
+    apiKey: token,
   });
 
+  // Create a chat completion request
   const response = await client.chat.completions.create({
     messages: [
-      { role:"system", content: "You are a helpful webscraper data analyst, outline the name of the company and the services they provided." },
-      { role:"user", content: `${data}` }
+      {
+        role: "system",
+        content:
+          "You are a helpful webscraper data analyst, what is the name of the company and the services they provided.",
+      },
+      { role: "user", content: `${data}` },
     ],
     model: "openai/gpt-4o",
     temperature: 1,
     max_tokens: 16384,
-    top_p: 1
+    top_p: 1,
   });
 
+  // Return the content of the first choice in the response
   return response.choices[0].message.content;
-//   console.log(response.choices[0].message.content);
-}
+};
 
+// Handle any errors that occur during the function execution
 ChatGPT4oRes().catch((err) => {
-  return("The sample encountered an error:", err);
-//   console.error("The sample encountered an error:", err);
+  return "The sample encountered an error:", err;
+  //   console.error("The sample encountered an error:", err);
 });
 
 // Exporting the function for external use
 module.exports = ChatGPT4oRes;
-
