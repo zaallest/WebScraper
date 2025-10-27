@@ -21,17 +21,18 @@ const ScrapeSite = async (attackers_URLs) => {
         .toLowerCase()
         .replace(/\s+/g, " ")
         .trim();
-      // Store the result in an object
-      const result = { at: at.at, url: at.url, text: pageText };
+
+        // Store the result in an object
+      const result = { at: at.at, url: at.url, site_data: pageText };
       // Push the result to the site_data array
       site_data.push(result);
     } catch (err) {
       // In case of an error (e.g., network issue, invalid URL), log the error and continue
-      site_data.push({
-        at: attackers_URLs[i].at,
-        url: attackers_URLs[i].url,
-        error: err.message,
-      });
+      // site_data.push({
+      //   at: attackers_URLs[i].at,
+      //   url: attackers_URLs[i].url,
+      //   error: err.message,
+      // });
       //return { url, error: err.message };
     }
   }

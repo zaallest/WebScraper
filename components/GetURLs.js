@@ -1,70 +1,45 @@
 //Importing necessary libraries
 const axios = require("axios");
 const cheerio = require("cheerio");
+const extractURL = require("../utils/extractURL");
 
 //This function use the list of attackers provided to fetch URLs associated with attackers...
 const GetURLs = async (attacker) => {
   // Base URL
-  const url = ["https://bgp.he.net/AS"];
+  const url = "https://bgp.he.net/AS";
   let attackers_URLs = [];
-  try {
-    if (attacker.length > 1) {
-      //Multiple ASNs provided as input
-      for (const at of attacker) {
-        const { data } = await axios.get(url + "" + at);
+
+  if (attacker.length > 1) {
+    //Multiple ASNs provided as input
+    for (const asn of attacker) {
+      try {
+        const { data } = await axios.get(url + "" + asn);
         const $ = cheerio.load(data);
 
         //Get all visible text on the page
         const pageText = $("body").text().toLowerCase();
+        const extracted_url = extractURL(pageText, asn);
 
-        //Get first and last index of the URL
-        const f_index = pageText.indexOf("https://www.");
-        const l_index = pageText.lastIndexOf(".br");
-        const l_index2 = pageText.indexOf("/");
-
-        //check if there is an attacker URL
-        if (f_index > 0 && l_index > 0) {
-          //Get the URL correspond to the code..
-          const URL = pageText.substring(f_index, l_index + 3);
-
-          //Puch url to the list
-          attackers_URLs.push({ at: at, url: URL });
-        } else if (f_index > 0 && l_index2 > 0) {
-          const URL = pageText.substring(f_index, l_index2 + 40).trim();
-
-          //Puch url to the list
-          attackers_URLs.push({ at: at, url: URL });
-        }
+        attackers_URLs.push({ at: asn, url: extracted_url });
+      } catch (error) {
+        console.log("Error fetching URL for ASN " + asn + ": " + error);
       }
-    } else {
-      //Single ASN provided as input
+    }
+  } else {
+    //Single ASN provided as input
+    try {
       const { data } = await axios.get(url + "" + attacker[0]);
       const $ = cheerio.load(data);
 
       //Get all visible text on the page
       const pageText = $("body").text().toLowerCase();
 
-      //Get first and last index of the URL
-      const f_index = pageText.indexOf("https://www.");
-      const l_index = pageText.lastIndexOf(".br");
-      const l_index2 = pageText.indexOf("/");
+      const extracted_url = extractURL(pageText, attacker[0]);
 
-      //check if there is an attacker URL
-      if (f_index > 0 && l_index > 0) {
-        //Get the URL correspond to the code..
-        const URL = pageText.substring(f_index, l_index + 3);
-
-        //Puch url to the list
-        attackers_URLs.push({ at: attacker[0], url: URL });
-      } else if (f_index > 0 && l_index2 > 0) {
-        const URL = pageText.substring(f_index, l_index2 + 40).trim();
-
-        //Puch url to the list
-        attackers_URLs.push({ at: attacker[0], url: URL });
-      }
+      attackers_URLs.push({ at: attacker[0], url: extracted_url });
+    } catch (error) {
+      console.log("Error fetching URL for ASN " + attacker[0] + ": " + error);
     }
-  } catch (error) {
-    console.log("An error occured please check you internet and try anain... ");
   }
 
   return attackers_URLs;

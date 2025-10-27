@@ -36,8 +36,8 @@ const ChatGPT4oRes = async (data) => {
 
 // Handle any errors that occur during the function execution
 ChatGPT4oRes().catch((err) => {
-  return "The sample encountered an error:", err;
-  //   console.error("The sample encountered an error:", err);
+  //return "The sample encountered an error:", err.message;
+  console.error("The sample encountered an error:", err.message);
 });
 
 // Exporting the function for external use
