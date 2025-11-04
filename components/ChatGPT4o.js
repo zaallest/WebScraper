@@ -4,7 +4,7 @@ require("dotenv").config();
 const OpenAI = require("openai");
 
 // Make sure to select the "repo" and "read:packages" scopes.
-const token = process.env.CHATGPT4o_API_KEY;
+const token = process.env.CHATGPT5_API_KEY;
 
 // Function to interact with ChatGPT4o model
 const ChatGPT4oRes = async (data) => {
@@ -20,7 +20,7 @@ const ChatGPT4oRes = async (data) => {
       {
         role: "system",
         content:
-          "You are a helpful webscraper data analyst, what is the name of the company and the services they provided.",
+          "You are a helpful webscraper data analyst, provide the name of the company, the country of location and the services they provided in JSON format like: [{country: country, company: company, services: services}]. Do not include any explanations or additional text like ```json or \n, or other characters.",
       },
       { role: "user", content: `${data}` },
     ],

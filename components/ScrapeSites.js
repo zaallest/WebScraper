@@ -5,14 +5,14 @@ const cheerio = require("cheerio");
 //This function use the list of attackers provided to fetch URLs associated with attackers...
 const ScrapeSite = async (attackers_URLs) => {
   const site_data = [];
-  let i = -1;
 
   //Featch each URL site data..
   for (const at of attackers_URLs) {
-    i++;
+
     try {
       // Fetch the HTML content of the URL
       const { data } = await axios.get(at.url);
+
       const $ = cheerio.load(data);
 
       // Extract and clean the text content from the page. Convert to lowercase and remove extra whitespace.
@@ -33,7 +33,7 @@ const ScrapeSite = async (attackers_URLs) => {
       //   url: attackers_URLs[i].url,
       //   error: err.message,
       // });
-      //return { url, error: err.message };
+      //console.log({ asn:at.url, error: err.message });
     }
   }
   // Return the array of site data

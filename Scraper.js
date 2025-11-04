@@ -6,8 +6,9 @@ const path = require("path");
 const { json } = require("stream/consumers");
 const GetURLs = require("./components/GetURLs");
 const ScrapeSite = require("./components/ScrapeSites");
-//const ChatGPT4oRes = require("./components/ChatGPT4o");
-const { check_ASN } = require("./utils/checkASN");
+const ChatGPT4oRes = require("./components/ChatGPT4o");
+const { check_ASN, validate_ASN } = require("./utils/checkASN");
+const { writeDatabase } = require("./components/Read_Write_DB");
 
 // Main function to run the program
 async function main(ASNs) {
@@ -21,24 +22,37 @@ async function main(ASNs) {
     for (const asn of ASNs) {
       //console.log("ASN:", asn);
       //ASN Validation
-      const asn_found = check_ASN(asn);
-      if (asn_found) {
-        asn_data.push(asn_found);
+      const is_valid = validate_ASN(asn);
+      if (is_valid) {
+        //Check if ASN exists in database
+        const asn_found = check_ASN(asn);
+        if (asn_found) {
+          asn_data.push(asn_found);
+        } else {
+          // Push each ASN to the attackers_list
+          attackers_list.push(asn);
+        }
       } else {
-        // Push each ASN to the attackers_list
-        attackers_list.push(asn);
+        asn_data.push({ at: asn, error: "Invalid ASN" });
       }
     }
   }
   // If ASNs is a single number, convert it to an array
   else if (typeof ASNs === "number") {
     //ASN Validation
-    const asn_found = check_ASN(ASNs);
-    if (asn_found) {
-      asn_data.push(asn_found);
+    const is_valid = validate_ASN(ASNs);
+
+    if (is_valid) {
+      //Check if ASN exists in database
+      const asn_found = check_ASN(ASNs);
+      if (asn_found) {
+        asn_data.push(asn_found);
+      } else {
+        // Push each ASN to the attackers_list
+        attackers_list.push(ASNs);
+      }
     } else {
-      // Push each ASN to the attackers_list
-      attackers_list.push(ASNs);
+      asn_data.push({ at: ASNs, error: "Invalid ASN" });
     }
   }
   // If ASNs is a string, check if it's a CSV file path
@@ -52,15 +66,23 @@ async function main(ASNs) {
       const asn = line.trim();
       if (asn) {
         //ASN Validation
-        const asn_found = check_ASN(asn);
-        if (asn_found) {
-          asn_data.push(asn_found);
+        const is_valid = validate_ASN(asn);
+        if (is_valid) {
+          //Check if ASN exists in database
+          const asn_found = check_ASN(asn);
+          if (asn_found) {
+            asn_data.push(asn_found);
+          } else {
+            // Push each ASN to the attackers_list
+            attackers_list.push(asn);
+          }
         } else {
-          // Push each ASN to the attackers_list
-          attackers_list.push(asn);
+          asn_data.push({ at: asn, error: "Invalid ASN" });
         }
       }
     }
+  } else {
+    asn_data.push({ at: ASNs, error: "Invalid ASN" });
   }
 
   // Get URLs for the provided attacker ASNs
@@ -69,47 +91,35 @@ async function main(ASNs) {
     //console.log("✅ URLs fetched!!\n" + JSON.stringify(attackers_URLs, null, 2));
     // Scrape each URL to get site data
     const site_data = await ScrapeSite(attackers_URLs);
-    asn_data.push(...site_data);
 
-    //Push data the database..
-    let data = fs.readFileSync("./DB/asn_data.json", "utf8");
-    let json_data = JSON.parse(data);
-    json_data.push(...site_data); 
-
-    fs.writeFileSync("./DB/asn_data.json", JSON.stringify(json_data, null, 2));
-    
-    
     //console.log(site_data);
     //Analyze each site's text data using ChatGPT4o
-    // for (const site of site_data) {
-    //   const data =
-    //     "Analyse the following website data and provide a summary: " + site.site_data.trim();
-    //   const summary = await ChatGPT4oRes(data);
-    //   // Append the summary to the site data
-    //   site.summary = summary;
-    //   //console.log("Summary for site:", site);
-    // }
-  } else {
-    console.log(
-      "✅ All ASNs already found in the database!!: " +
-        JSON.stringify(asn_data, null, 2)
-    );
-  }
-  //const attackers_URLs = await GetURLs(attackers_list);
-  //console.log("✅ URLs fetched!!\n" + JSON.stringify(attackers_URLs, null, 2));
-  // Scrape each URL to get site data
-  //const site_data = await ScrapeSite(attackers_URLs);
-  //console.log(site_data)
-  //Analyze each site's text data using ChatGPT4o
-  // for (const site of site_data) {
-  //   const data =
-  //     "Analyse the following website data and provide a summary: " + site.site_data.trim();
-  //   const summary = await ChatGPT4oRes(data);
+    for (const site of site_data) {
+      const data =
+        "Analyse the following website data and provide a summary: " +
+        site.site_data.trim();
+      const summary = await ChatGPT4oRes(data);
+      //const cleaned_summary = JSON.stringify(summary);
+      //Get data from the AI response and pass it to the dataset
+      for(const dd of JSON.parse(summary)){
+        site.country = dd.country;
+        site.company = dd.company;
+        site.services = dd.services;
 
-  //   // Append the summary to the site data
-  //   site.summary = summary;
-  //   //console.log("Summary for site:", site);
-  // }
+        }
+      
+    }
+
+    //Push data the database..
+    writeDatabase(site_data);
+
+    // Append the new site data to asn_data
+    asn_data.push(...site_data);
+  } else {
+    console.log("✅ All ASNs already found in the database!!: ");
+    
+  }
+
   // Save results to a JSON file
   //fs.writeFileSync("results.json", JSON.stringify(site_data, null, 2));
   fs.writeFileSync("results.json", JSON.stringify(asn_data, null, 2));
@@ -127,8 +137,9 @@ const attackers_list = [
   3223, 53184, 37468, 6461, 6939, 137409, 396998, 52873, 9002, 32097, 13786,
   209533, 16265, 56630,
 ];
-const at_lst = [32097,13786, 6939, 6461];
+const at_lst = [32097, 13786,6461, 6939, 137409, 396998, 52873, 6939, 6461];
 //main(attackers_list);
-main(at_lst);
-//main(20912);
+//main(at_lst);
+main(137409);
+//main(396998);//Error encounterer when scraping site data
 // main("attackers.asn.csv");
